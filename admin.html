@@ -1,274 +1,396 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>호반써밋 엘리트시티 방문예약 관리자</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>방문예약 관리자</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-  :root {
-    --navy: #334464;
-    --navy-dark: #22304a;
-    --gray-bg: #f4f6f9;
-    --gray-border: #dde2ea;
-    --text: #22283a;
-    --text-sub: #6b7280;
-    --danger: #c0392b;
-  }
-  * { box-sizing: border-box; }
-  body { margin:0; font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif; background:var(--gray-bg); color:var(--text); }
-  header { background: var(--navy); color:#fff; padding:18px 20px; display:flex; justify-content:space-between; align-items:center; }
-  header h1 { font-size:17px; margin:0; }
-  header button { background:transparent; border:1px solid rgba(255,255,255,0.5); color:#fff; border-radius:8px; padding:6px 12px; font-size:12.5px; cursor:pointer; }
-  .wrap { max-width:960px; margin:0 auto; padding:18px; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Noto Sans KR',sans-serif;background:#f5f5f3;color:#1a1a18;min-height:100vh;}
 
-  /* 로그인 화면 */
-  #loginScreen { max-width:360px; margin:80px auto; background:#fff; border:1px solid var(--gray-border); border-radius:14px; padding:28px; }
-  #loginScreen h2 { text-align:center; font-size:16px; margin-bottom:18px; }
-  #loginScreen input { width:100%; padding:11px 12px; border:1px solid var(--gray-border); border-radius:9px; margin-bottom:10px; font-size:14px; }
-  #loginScreen button { width:100%; padding:13px; border:none; border-radius:9px; background:var(--navy); color:#fff; font-weight:700; cursor:pointer; font-size:14.5px; }
-  #loginError { color:var(--danger); font-size:12.5px; text-align:center; min-height:18px; margin-bottom:4px; }
+/* 로그인 */
+#loginPage{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1.5rem;}
+.login-card{background:#fff;border:0.5px solid #e0dfd8;border-radius:16px;padding:2.5rem 2rem;width:100%;max-width:360px;}
+.login-card h1{font-size:18px;font-weight:600;margin-bottom:4px;}
+.login-card p{font-size:13px;color:#888;margin-bottom:1.5rem;}
+.fg{margin-bottom:12px;}
+.fg label{font-size:12px;color:#555;display:block;margin-bottom:4px;}
+.fg input{width:100%;padding:9px 11px;font-size:14px;border:0.5px solid #d0cfca;border-radius:7px;outline:none;}
+.fg input:focus{border-color:#534AB7;}
+.btn-login{width:100%;padding:11px;font-size:14px;font-weight:600;border:none;border-radius:8px;background:#534AB7;color:#fff;cursor:pointer;margin-top:4px;}
+.btn-login:hover{background:#3C3489;}
+.login-err{font-size:13px;color:#A32D2D;margin-top:8px;text-align:center;min-height:16px;}
 
-  .stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
-  .stat-card { background:#fff; border:1px solid var(--gray-border); border-radius:12px; padding:14px; text-align:center; }
-  .stat-card .num { font-size:20px; font-weight:800; color:var(--navy); }
-  .stat-card .label { font-size:12px; color:var(--text-sub); margin-top:2px; }
+/* 앱 */
+#appPage{display:none;min-height:100vh;}
+.header{background:#1a1a18;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;}
+.header h1{font-size:16px;font-weight:500;color:#fff;}
+.header-right{display:flex;align-items:center;gap:12px;}
+.admin-badge{background:#534AB7;color:#fff;font-size:12px;padding:4px 10px;border-radius:5px;}
+.btn-logout{font-size:13px;padding:5px 12px;border:0.5px solid #444;border-radius:6px;background:transparent;color:#ccc;cursor:pointer;}
 
-  .date-tabs { display:flex; gap:8px; margin-bottom:14px; }
-  .date-tab { flex:1; text-align:center; padding:10px; border-radius:9px; border:1px solid var(--gray-border); background:#fff; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-sub); }
-  .date-tab.active { background:var(--navy); border-color:var(--navy); color:#fff; }
+.content{max-width:1100px;margin:0 auto;padding:1.5rem 1rem 3rem;}
 
-  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--gray-border); border-radius:10px; overflow:hidden; font-size:13px; }
-  th, td { padding:9px 8px; border-bottom:1px solid var(--gray-border); text-align:center; }
-  th { background:#f0f2f6; font-weight:700; color:var(--text-sub); font-size:12.5px; }
-  tr:last-child td { border-bottom:none; }
-  .status-pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; }
-  .status-pill.active { background:#e5f3e8; color:#2e7d32; }
-  .status-pill.cancel { background:#f5e5e5; color:var(--danger); }
-  .toolbar { display:flex; justify-content:space-between; align-items:center; margin:18px 0 10px; }
-  .toolbar h3 { margin:0; font-size:14.5px; }
-  .btn-sm { padding:8px 14px; border-radius:8px; border:1px solid var(--navy); background:#fff; color:var(--navy); font-size:12.5px; font-weight:700; cursor:pointer; }
-  .cancel-link { color:var(--danger); font-size:12px; cursor:pointer; text-decoration:underline; }
-  .empty-msg { text-align:center; padding:30px; color:var(--text-sub); font-size:13px; }
-  .hidden { display:none !important; }
+/* 통계 카드 */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:1.5rem;}
+.stat-card{background:#fff;border:0.5px solid #e0dfd8;border-radius:11px;padding:16px;}
+.stat-label{font-size:12px;color:#888;margin-bottom:6px;}
+.stat-num{font-size:28px;font-weight:600;color:#1a1a18;}
+.stat-num.blue{color:#534AB7;}
+.stat-num.green{color:#1D9E75;}
+.stat-num.red{color:#A32D2D;}
+.stat-num.orange{color:#D97706;}
+
+/* 섹션 */
+.sec{background:#fff;border:0.5px solid #e0dfd8;border-radius:11px;padding:1.25rem;margin-bottom:1.25rem;}
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;}
+.sec-title{font-size:15px;font-weight:600;}
+.btn-excel{padding:7px 14px;font-size:13px;border:0.5px solid #1D9E75;border-radius:7px;background:#fff;color:#1D9E75;cursor:pointer;display:flex;align-items:center;gap:5px;}
+.btn-excel:hover{background:#E1F5EE;}
+
+/* 탭 */
+.tab-bar{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap;}
+.tab{padding:6px 14px;font-size:13px;border:0.5px solid #d0cfca;border-radius:7px;cursor:pointer;background:#fff;color:#555;}
+.tab.active{background:#EEEDFE;border-color:#534AB7;color:#3C3489;font-weight:500;}
+
+/* 테이블 */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{background:#f5f5f3;padding:9px 12px;text-align:left;font-weight:500;color:#555;border-bottom:1px solid #e0dfd8;white-space:nowrap;}
+td{padding:9px 12px;border-bottom:0.5px solid #f0efea;color:#1a1a18;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:#fafaf8;}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500;}
+.badge-ok{background:#E1F5EE;color:#0F6E56;}
+.badge-no{background:#FEF3C7;color:#92400E;}
+.badge-full{background:#EEEDFE;color:#3C3489;}
+
+/* 시간표 */
+.schedule-wrap{overflow-x:auto;}
+.schedule-table{border-collapse:collapse;font-size:12px;min-width:700px;}
+.schedule-table th{background:#f5f5f3;padding:8px 10px;border:0.5px solid #e0dfd8;text-align:center;font-weight:500;white-space:nowrap;}
+.schedule-table td{padding:7px 10px;border:0.5px solid #e0dfd8;text-align:center;min-width:80px;}
+.cell-empty{color:#ccc;}
+.cell-name{font-size:11px;color:#1a1a18;line-height:1.5;}
+.cell-full{background:#EEEDFE;}
+.cell-avail{background:#f9f9ff;}
+
+.loading{font-size:14px;color:#aaa;padding:1rem 0;}
+.empty{font-size:14px;color:#aaa;padding:1rem 0;}
+
+@media(max-width:600px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);}
+  .content{padding:1rem 0.75rem 2rem;}
+}
 </style>
 </head>
 <body>
 
-<div id="loginScreen">
-  <h2>관리자 로그인</h2>
-  <div id="loginError"></div>
-  <input type="text" id="loginId" placeholder="관리자 아이디" autocomplete="username" />
-  <input type="password" id="loginPw" placeholder="비밀번호" autocomplete="current-password" />
-  <button onclick="doLogin()">로그인</button>
-</div>
-
-<div id="adminScreen" class="hidden">
-  <header>
-    <h1>호반써밋 엘리트시티 방문예약 관리자</h1>
-    <button onclick="doLogout()">로그아웃</button>
-  </header>
-
-  <div class="wrap">
-    <div class="stat-grid">
-      <div class="stat-card"><div class="num" id="statTotal">-</div><div class="label">총 예약 건수</div></div>
-      <div class="stat-card"><div class="num" id="statHeadcount">-</div><div class="label">총 예약 인원</div></div>
-      <div class="stat-card"><div class="num" id="statFullSlots">-</div><div class="label">마감 슬롯 (선택일)</div></div>
-      <div class="stat-card"><div class="num" id="statRemainSlots">-</div><div class="label">잔여 슬롯 (선택일)</div></div>
+<!-- 로그인 -->
+<div id="loginPage">
+  <div class="login-card">
+    <h1>관리자 로그인</h1>
+    <p>방문예약 관리자 페이지입니다.</p>
+    <div class="fg">
+      <label>관리자 ID</label>
+      <input type="text" id="aId" placeholder="admin" onkeydown="if(event.key==='Enter')doLogin()"/>
     </div>
-
-    <div class="date-tabs" id="adminDateTabs"></div>
-
-    <div class="toolbar">
-      <h3 id="listTitle">예약 목록</h3>
-      <button class="btn-sm" onclick="exportExcel()">엑셀로 내보내기</button>
+    <div class="fg">
+      <label>비밀번호</label>
+      <input type="password" id="aPw" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()"/>
     </div>
-
-    <table>
-      <thead>
-        <tr>
-          <th>시간대</th><th>예약자명</th><th>연락처</th><th>인원</th><th>신청일시</th><th>상태</th><th></th>
-        </tr>
-      </thead>
-      <tbody id="resTableBody"></tbody>
-    </table>
-    <div id="emptyMsg" class="empty-msg hidden">선택한 일자에 예약이 없습니다.</div>
+    <button class="btn-login" onclick="doLogin()">로그인</button>
+    <p class="login-err" id="loginErr"></p>
   </div>
 </div>
 
-<script src="config.js"></script>
+<!-- 앱 -->
+<div id="appPage">
+  <div class="header">
+    <h1>방문예약 관리자</h1>
+    <div class="header-right">
+      <span class="admin-badge">ADMIN</span>
+      <button class="btn-logout" onclick="doLogout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- 통계 -->
+    <div class="stats-grid" id="statsGrid">
+      <div class="stat-card"><div class="stat-label">전체 계약세대</div><div class="stat-num blue" id="sTot">-</div></div>
+      <div class="stat-card"><div class="stat-label">예약 세대</div><div class="stat-num green" id="sBook">-</div></div>
+      <div class="stat-card"><div class="stat-label">미예약 세대</div><div class="stat-num red" id="sNo">-</div></div>
+      <div class="stat-card"><div class="stat-label">예약률</div><div class="stat-num orange" id="sRate">-</div></div>
+    </div>
+
+    <!-- 일자별 시간표 -->
+    <div class="sec">
+      <div class="sec-header">
+        <div class="sec-title">일자별 시간별 예약 현황</div>
+        <button class="btn-excel" onclick="exportSchedule()">⬇ 엑셀</button>
+      </div>
+      <div class="tab-bar" id="dateTabs"></div>
+      <div class="schedule-wrap" id="scheduleWrap"><p class="loading">불러오는 중...</p></div>
+    </div>
+
+    <!-- 예약 세대 목록 -->
+    <div class="sec">
+      <div class="sec-header">
+        <div class="sec-title">예약 세대 목록</div>
+        <button class="btn-excel" onclick="exportBooked()">⬇ 엑셀</button>
+      </div>
+      <div class="tbl-wrap">
+        <table id="bookedTable">
+          <thead><tr><th>No</th><th>계약자명</th><th>동</th><th>호</th><th>예약일</th><th>시간</th><th>방문자명</th><th>연락처</th><th>방문목적</th></tr></thead>
+          <tbody id="bookedBody"><tr><td colspan="9" class="loading">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 미예약 세대 목록 -->
+    <div class="sec">
+      <div class="sec-header">
+        <div class="sec-title">미예약 세대 목록</div>
+        <button class="btn-excel" onclick="exportUnbooked()">⬇ 엑셀</button>
+      </div>
+      <div class="tbl-wrap">
+        <table id="unbookedTable">
+          <thead><tr><th>No</th><th>계약자명</th><th>동</th><th>호</th><th>상태</th></tr></thead>
+          <tbody id="unbookedBody"><tr><td colspan="5" class="loading">불러오는 중...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
 <script>
-let token = null;
-let allReservations = []; // 전체 예약 (선택일 무관, 통계용)
-let selectedDate = CONFIG.VISIT_DATES[0];
+// ══ 설정 ════════════════════════════════════════
+const API_URL = 'https://script.google.com/macros/s/AKfycbwSkKMCIBzO1B-w7-0eo3swRcVPBCX9ZR4X_r7R7ho-xo1l5HevX8gGqCyqVt9flrIf/exec';
+const ADMIN_ID = 'admin';
+const ADMIN_PW = 'admin123'; // 원하는 비밀번호로 변경
+const DATES = ['2026-11-12', '2026-11-14'];
+const SLOTS = ['09:30','10:00','10:30','11:00','11:30','13:00','13:30','14:00','14:30','15:00'];
+const MAX = 2;
 
-function pad(n){ return String(n).padStart(2,"0"); }
-function fmtDateLabel(iso){
-  const d = new Date(iso + "T00:00:00+09:00");
-  const days = ["일","월","화","수","목","금","토"];
-  return `${d.getMonth()+1}.${d.getDate()}(${days[d.getDay()]})`;
+let allContractors = [];
+let allBookings = [];
+let selDate = DATES[0];
+
+// ══ 로그인 ════════════════════════════════════
+function doLogin() {
+  const id = document.getElementById('aId').value.trim();
+  const pw = document.getElementById('aPw').value;
+  const err = document.getElementById('loginErr');
+  if (id === ADMIN_ID && pw === ADMIN_PW) {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('appPage').style.display = 'block';
+    loadData();
+  } else {
+    err.textContent = 'ID 또는 비밀번호가 올바르지 않습니다.';
+  }
 }
 
-async function doLogin(){
-  const id = document.getElementById("loginId").value.trim();
-  const pw = document.getElementById("loginPw").value;
-  const errEl = document.getElementById("loginError");
-  errEl.textContent = "";
-  if (!id || !pw){
-    errEl.textContent = "아이디와 비밀번호를 입력해주세요.";
-    return;
-  }
+function doLogout() {
+  document.getElementById('loginPage').style.display = 'flex';
+  document.getElementById('appPage').style.display = 'none';
+  document.getElementById('aId').value = '';
+  document.getElementById('aPw').value = '';
+}
+
+// ══ 데이터 로드 ═══════════════════════════════
+async function loadData() {
   try {
-    const res = await fetch(CONFIG.API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "adminLogin", id, pw })
-    });
-    const data = await res.json();
-    if (data.ok){
-      token = data.token;
-      sessionStorage.setItem("admin_token", token); // 이 세션(탭)에서만 유지, 새로고침 대비
-      document.getElementById("loginScreen").classList.add("hidden");
-      document.getElementById("adminScreen").classList.remove("hidden");
-      initDateTabs();
-      await refreshData();
-    } else {
-      errEl.textContent = data.message || "로그인에 실패했습니다.";
-    }
-  } catch(err){
-    errEl.textContent = "네트워크 오류가 발생했습니다.";
+    const [cRes, bRes] = await Promise.all([
+      apiFetch('GET', { action: 'admin_contractors' }),
+      apiFetch('GET', { action: 'admin_bookings' })
+    ]);
+    allContractors = cRes.contractors || [];
+    allBookings    = bRes.bookings    || [];
+    renderAll();
+  } catch(e) {
+    alert('데이터를 불러오지 못했습니다: ' + e.message);
   }
 }
 
-function doLogout(){
-  token = null;
-  sessionStorage.removeItem("admin_token");
-  document.getElementById("adminScreen").classList.add("hidden");
-  document.getElementById("loginScreen").classList.remove("hidden");
-  document.getElementById("loginPw").value = "";
+function renderAll() {
+  renderStats();
+  buildDateTabs();
+  renderSchedule(selDate);
+  renderBooked();
+  renderUnbooked();
 }
 
-function initDateTabs(){
-  const wrap = document.getElementById("adminDateTabs");
-  wrap.innerHTML = "";
-  CONFIG.VISIT_DATES.forEach((iso, idx) => {
-    const el = document.createElement("div");
-    el.className = "date-tab" + (idx === 0 ? " active" : "");
-    el.textContent = fmtDateLabel(iso);
-    el.onclick = () => {
-      selectedDate = iso;
-      document.querySelectorAll(".date-tab").forEach(e => e.classList.remove("active"));
-      el.classList.add("active");
-      renderForSelectedDate();
+// ══ 통계 ══════════════════════════════════════
+function renderStats() {
+  const tot   = allContractors.length;
+  const bookedNames = new Set(allBookings.map(b => b.name + '_' + b.dong + '_' + b.ho));
+  const booked = allContractors.filter(c => bookedNames.has(c.name + '_' + c.dong + '_' + c.ho)).length;
+  const no    = tot - booked;
+  const rate  = tot > 0 ? Math.round(booked / tot * 100) : 0;
+  document.getElementById('sTot').textContent   = tot + '세대';
+  document.getElementById('sBook').textContent  = booked + '세대';
+  document.getElementById('sNo').textContent    = no + '세대';
+  document.getElementById('sRate').textContent  = rate + '%';
+}
+
+// ══ 날짜 탭 ═══════════════════════════════════
+function buildDateTabs() {
+  const wrap = document.getElementById('dateTabs');
+  wrap.innerHTML = '';
+  const WD = ['일','월','화','수','목','금','토'];
+  DATES.forEach((d, i) => {
+    const dt = new Date(d + 'T00:00:00');
+    const lbl = (dt.getMonth()+1) + '/' + dt.getDate() + '(' + WD[dt.getDay()] + ')';
+    const btn = document.createElement('button');
+    btn.className = 'tab' + (i === 0 ? ' active' : '');
+    btn.textContent = lbl;
+    btn.onclick = () => {
+      selDate = d;
+      document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderSchedule(d);
     };
-    wrap.appendChild(el);
+    wrap.appendChild(btn);
   });
 }
 
-async function refreshData(){
-  try {
-    const res = await fetch(`${CONFIG.API_URL}?action=adminData&token=${encodeURIComponent(token)}`);
-    const data = await res.json();
-    if (!data.ok){
-      if (data.message === "INVALID_TOKEN"){
-        alert("세션이 만료되었습니다. 다시 로그인해주세요.");
-        doLogout();
-        return;
+// ══ 시간표 ════════════════════════════════════
+function renderSchedule(date) {
+  const wrap = document.getElementById('scheduleWrap');
+  const dayBookings = allBookings.filter(b => b.date === date);
+
+  // 슬롯별 예약자 목록
+  const slotMap = {};
+  SLOTS.forEach(s => slotMap[s] = []);
+  dayBookings.forEach(b => {
+    if (slotMap[b.time]) slotMap[b.time].push(b);
+  });
+
+  let html = '<table class="schedule-table"><thead><tr><th>시간</th><th>예약인원</th>';
+  for (let i = 1; i <= MAX; i++) html += '<th>' + i + '번</th>';
+  html += '</tr></thead><tbody>';
+
+  SLOTS.forEach(slot => {
+    const list = slotMap[slot] || [];
+    const isFull = list.length >= MAX;
+    html += '<tr' + (isFull ? ' class="cell-full"' : ' class="cell-avail"') + '>';
+    html += '<td><strong>' + slot + '</strong></td>';
+    html += '<td style="text-align:center;">' + list.length + ' / ' + MAX +
+            (isFull ? ' <span class="badge badge-full">마감</span>' : '') + '</td>';
+    for (let i = 0; i < MAX; i++) {
+      const b = list[i];
+      if (b) {
+        html += '<td class="cell-name">' + b.name + '<br><span style="color:#888;">' + b.dong + ' ' + b.ho + '</span></td>';
+      } else {
+        html += '<td class="cell-empty">-</td>';
       }
-      alert(data.message || "데이터를 불러오지 못했습니다.");
-      return;
     }
-    allReservations = data.items || [];
-    renderForSelectedDate();
-  } catch(err){
-    alert("네트워크 오류로 데이터를 불러오지 못했습니다.");
-  }
+    html += '</tr>';
+  });
+
+  html += '</tbody></table>';
+  wrap.innerHTML = html;
 }
 
-function renderForSelectedDate(){
-  const daySlots = buildDaySlots(CONFIG);
-  const dayItems = allReservations.filter(r => r.date === selectedDate);
-  const activeItems = dayItems.filter(r => r.status === "예약");
-
-  // 통계
-  document.getElementById("statTotal").textContent = allReservations.filter(r => r.status === "예약").length;
-  document.getElementById("statHeadcount").textContent =
-    allReservations.filter(r => r.status === "예약").reduce((s,r) => s + Number(r.headcount||0), 0);
-
-  const countBySlot = {};
-  activeItems.forEach(r => { countBySlot[r.slot] = (countBySlot[r.slot]||0) + 1; });
-  const fullSlots = daySlots.filter(t => (countBySlot[t]||0) >= CONFIG.MAX_TEAMS_PER_SLOT).length;
-  document.getElementById("statFullSlots").textContent = fullSlots;
-  document.getElementById("statRemainSlots").textContent = daySlots.length - fullSlots;
-
-  document.getElementById("listTitle").textContent = `예약 목록 - ${fmtDateLabel(selectedDate)}`;
-
-  const tbody = document.getElementById("resTableBody");
-  tbody.innerHTML = "";
-  const sorted = [...dayItems].sort((a,b) => a.slot.localeCompare(b.slot));
-
-  if (sorted.length === 0){
-    document.getElementById("emptyMsg").classList.remove("hidden");
-  } else {
-    document.getElementById("emptyMsg").classList.add("hidden");
-    sorted.forEach(r => {
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${r.slot}</td>
-        <td>${r.name}</td>
-        <td>${r.phone}</td>
-        <td>${r.headcount}</td>
-        <td>${r.createdAt || ""}</td>
-        <td><span class="status-pill ${r.status === "예약" ? "active" : "cancel"}">${r.status}</span></td>
-        <td>${r.status === "예약" ? `<span class="cancel-link" onclick="adminCancel('${r.id}')">취소</span>` : ""}</td>
-      `;
-      tbody.appendChild(tr);
-    });
+// ══ 예약 세대 목록 ════════════════════════════
+function renderBooked() {
+  const tbody = document.getElementById('bookedBody');
+  if (!allBookings.length) {
+    tbody.innerHTML = '<tr><td colspan="9" class="empty">예약 내역이 없습니다.</td></tr>';
+    return;
   }
+  const sorted = [...allBookings].sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  tbody.innerHTML = sorted.map((b, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${b.name}</td>
+      <td>${b.dong}</td>
+      <td>${b.ho}</td>
+      <td>${b.date}</td>
+      <td>${b.time}</td>
+      <td>${b.visitor_name || '-'}</td>
+      <td>${b.visitor_phone || '-'}</td>
+      <td>${b.purpose || '-'}</td>
+    </tr>`).join('');
 }
 
-async function adminCancel(id){
-  if (!confirm("이 예약을 취소 처리하시겠습니까?")) return;
-  try {
-    const res = await fetch(CONFIG.API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
-      body: JSON.stringify({ action: "adminCancel", id, token })
-    });
-    const data = await res.json();
-    if (data.ok){
-      await refreshData();
-    } else {
-      alert(data.message || "취소에 실패했습니다.");
-    }
-  } catch(err){
-    alert("네트워크 오류가 발생했습니다.");
+// ══ 미예약 세대 목록 ══════════════════════════
+function renderUnbooked() {
+  const tbody = document.getElementById('unbookedBody');
+  const bookedKeys = new Set(allBookings.map(b => b.name + '_' + b.dong + '_' + b.ho));
+  const unbooked = allContractors.filter(c => !bookedKeys.has(c.name + '_' + c.dong + '_' + c.ho));
+
+  if (!unbooked.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty">모든 세대가 예약했습니다! 🎉</td></tr>';
+    return;
   }
+  tbody.innerHTML = unbooked.map((c, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${c.name}</td>
+      <td>${c.dong}</td>
+      <td>${c.ho}</td>
+      <td><span class="badge badge-no">미예약</span></td>
+    </tr>`).join('');
 }
 
-function exportExcel(){
-  const dayItems = allReservations.filter(r => r.date === selectedDate);
-  const rows = dayItems.map(r => ({
-    "일자": r.date, "시간대": r.slot, "예약자명": r.name, "연락처": r.phone,
-    "인원": r.headcount, "신청일시": r.createdAt, "상태": r.status
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows);
+// ══ 엑셀 내보내기 ═════════════════════════════
+function exportSchedule() {
   const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, "예약목록");
-  XLSX.writeFile(wb, `호반써밋엘리트시티_방문예약_${selectedDate}.xlsx`);
+  DATES.forEach(date => {
+    const dayBookings = allBookings.filter(b => b.date === date);
+    const slotMap = {};
+    SLOTS.forEach(s => slotMap[s] = []);
+    dayBookings.forEach(b => { if (slotMap[b.time]) slotMap[b.time].push(b); });
+
+    const rows = [['시간','예약인원','1번 계약자','1번 동호','2번 계약자','2번 동호','3번 계약자','3번 동호']];
+    SLOTS.forEach(slot => {
+      const list = slotMap[slot] || [];
+      const row = [slot, list.length + '/' + MAX];
+      for (let i = 0; i < MAX; i++) {
+        const b = list[i];
+        row.push(b ? b.name : '-');
+        row.push(b ? b.dong + ' ' + b.ho : '-');
+      }
+      rows.push(row);
+    });
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    XLSX.utils.book_append_sheet(wb, ws, date);
+  });
+  XLSX.writeFile(wb, '시간별예약현황.xlsx');
 }
 
-// 새로고침 시 세션 유지 시도 (같은 브라우저 탭 한정)
-(function tryRestoreSession(){
-  const saved = sessionStorage.getItem("admin_token");
-  if (saved){
-    token = saved;
-    document.getElementById("loginScreen").classList.add("hidden");
-    document.getElementById("adminScreen").classList.remove("hidden");
-    initDateTabs();
-    refreshData();
-  }
-})();
+function exportBooked() {
+  const sorted = [...allBookings].sort((a,b) => a.date.localeCompare(b.date) || a.time.localeCompare(b.time));
+  const rows = [['No','계약자명','동','호','예약일','시간','방문자명','연락처','방문목적']];
+  sorted.forEach((b,i) => rows.push([i+1, b.name, b.dong, b.ho, b.date, b.time, b.visitor_name||'', b.visitor_phone||'', b.purpose||'']));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '예약세대');
+  XLSX.writeFile(wb, '예약세대목록.xlsx');
+}
+
+function exportUnbooked() {
+  const bookedKeys = new Set(allBookings.map(b => b.name + '_' + b.dong + '_' + b.ho));
+  const unbooked = allContractors.filter(c => !bookedKeys.has(c.name + '_' + c.dong + '_' + c.ho));
+  const rows = [['No','계약자명','동','호','상태']];
+  unbooked.forEach((c,i) => rows.push([i+1, c.name, c.dong, c.ho, '미예약']));
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '미예약세대');
+  XLSX.writeFile(wb, '미예약세대목록.xlsx');
+}
+
+// ══ API ═══════════════════════════════════════
+async function apiFetch(method, params) {
+  let url = API_URL;
+  if (method === 'GET') url += '?' + new URLSearchParams(params).toString();
+  const r = await fetch(url, { method });
+  return r.json();
+}
 </script>
 </body>
 </html>
