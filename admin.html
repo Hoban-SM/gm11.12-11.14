@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>호반써밋 엘리트시티 방문예약 관리자</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --navy: #334464;
+    --navy-dark: #22304a;
+    --gray-bg: #f4f6f9;
+    --gray-border: #dde2ea;
+    --text: #22283a;
+    --text-sub: #6b7280;
+    --danger: #c0392b;
+  }
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif; background:var(--gray-bg); color:var(--text); }
+  header { background: var(--navy); color:#fff; padding:18px 20px; display:flex; justify-content:space-between; align-items:center; }
+  header h1 { font-size:17px; margin:0; }
+  header button { background:transparent; border:1px solid rgba(255,255,255,0.5); color:#fff; border-radius:8px; padding:6px 12px; font-size:12.5px; cursor:pointer; }
+  .wrap { max-width:960px; margin:0 auto; padding:18px; }
+
+  /* 로그인 화면 */
+  #loginScreen { max-width:360px; margin:80px auto; background:#fff; border:1px solid var(--gray-border); border-radius:14px; padding:28px; }
+  #loginScreen h2 { text-align:center; font-size:16px; margin-bottom:18px; }
+  #loginScreen input { width:100%; padding:11px 12px; border:1px solid var(--gray-border); border-radius:9px; margin-bottom:10px; font-size:14px; }
+  #loginScreen button { width:100%; padding:13px; border:none; border-radius:9px; background:var(--navy); color:#fff; font-weight:700; cursor:pointer; font-size:14.5px; }
+  #loginError { color:var(--danger); font-size:12.5px; text-align:center; min-height:18px; margin-bottom:4px; }
+
+  .stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:16px; }
+  .stat-card { background:#fff; border:1px solid var(--gray-border); border-radius:12px; padding:14px; text-align:center; }
+  .stat-card .num { font-size:20px; font-weight:800; color:var(--navy); }
+  .stat-card .label { font-size:12px; color:var(--text-sub); margin-top:2px; }
+
+  .date-tabs { display:flex; gap:8px; margin-bottom:14px; }
+  .date-tab { flex:1; text-align:center; padding:10px; border-radius:9px; border:1px solid var(--gray-border); background:#fff; cursor:pointer; font-size:13px; font-weight:600; color:var(--text-sub); }
+  .date-tab.active { background:var(--navy); border-color:var(--navy); color:#fff; }
+
+  table { width:100%; border-collapse:collapse; background:#fff; border:1px solid var(--gray-border); border-radius:10px; overflow:hidden; font-size:13px; }
+  th, td { padding:9px 8px; border-bottom:1px solid var(--gray-border); text-align:center; }
+  th { background:#f0f2f6; font-weight:700; color:var(--text-sub); font-size:12.5px; }
+  tr:last-child td { border-bottom:none; }
+  .status-pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:11.5px; font-weight:700; }
+  .status-pill.active { background:#e5f3e8; color:#2e7d32; }
+  .status-pill.cancel { background:#f5e5e5; color:var(--danger); }
+  .toolbar { display:flex; justify-content:space-between; align-items:center; margin:18px 0 10px; }
+  .toolbar h3 { margin:0; font-size:14.5px; }
+  .btn-sm { padding:8px 14px; border-radius:8px; border:1px solid var(--navy); background:#fff; color:var(--navy); font-size:12.5px; font-weight:700; cursor:pointer; }
+  .cancel-link { color:var(--danger); font-size:12px; cursor:pointer; text-decoration:underline; }
+  .empty-msg { text-align:center; padding:30px; color:var(--text-sub); font-size:13px; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+
+<div id="loginScreen">
+  <h2>관리자 로그인</h2>
+  <div id="loginError"></div>
+  <input type="text" id="loginId" placeholder="관리자 아이디" autocomplete="username" />
+  <input type="password" id="loginPw" placeholder="비밀번호" autocomplete="current-password" />
+  <button onclick="doLogin()">로그인</button>
+</div>
+
+<div id="adminScreen" class="hidden">
+  <header>
+    <h1>호반써밋 엘리트시티 방문예약 관리자</h1>
+    <button onclick="doLogout()">로그아웃</button>
+  </header>
+
+  <div class="wrap">
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num" id="statTotal">-</div><div class="label">총 예약 건수</div></div>
+      <div class="stat-card"><div class="num" id="statHeadcount">-</div><div class="label">총 예약 인원</div></div>
+      <div class="stat-card"><div class="num" id="statFullSlots">-</div><div class="label">마감 슬롯 (선택일)</div></div>
+      <div class="stat-card"><div class="num" id="statRemainSlots">-</div><div class="label">잔여 슬롯 (선택일)</div></div>
+    </div>
+
+    <div class="date-tabs" id="adminDateTabs"></div>
+
+    <div class="toolbar">
+      <h3 id="listTitle">예약 목록</h3>
+      <button class="btn-sm" onclick="exportExcel()">엑셀로 내보내기</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>시간대</th><th>예약자명</th><th>연락처</th><th>인원</th><th>신청일시</th><th>상태</th><th></th>
+        </tr>
+      </thead>
+      <tbody id="resTableBody"></tbody>
+    </table>
+    <div id="emptyMsg" class="empty-msg hidden">선택한 일자에 예약이 없습니다.</div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+let token = null;
+let allReservations = []; // 전체 예약 (선택일 무관, 통계용)
+let selectedDate = CONFIG.VISIT_DATES[0];
+
+function pad(n){ return String(n).padStart(2,"0"); }
+function fmtDateLabel(iso){
+  const d = new Date(iso + "T00:00:00+09:00");
+  const days = ["일","월","화","수","목","금","토"];
+  return `${d.getMonth()+1}.${d.getDate()}(${days[d.getDay()]})`;
+}
+
+async function doLogin(){
+  const id = document.getElementById("loginId").value.trim();
+  const pw = document.getElementById("loginPw").value;
+  const errEl = document.getElementById("loginError");
+  errEl.textContent = "";
+  if (!id || !pw){
+    errEl.textContent = "아이디와 비밀번호를 입력해주세요.";
+    return;
+  }
+  try {
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "adminLogin", id, pw })
+    });
+    const data = await res.json();
+    if (data.ok){
+      token = data.token;
+      sessionStorage.setItem("admin_token", token); // 이 세션(탭)에서만 유지, 새로고침 대비
+      document.getElementById("loginScreen").classList.add("hidden");
+      document.getElementById("adminScreen").classList.remove("hidden");
+      initDateTabs();
+      await refreshData();
+    } else {
+      errEl.textContent = data.message || "로그인에 실패했습니다.";
+    }
+  } catch(err){
+    errEl.textContent = "네트워크 오류가 발생했습니다.";
+  }
+}
+
+function doLogout(){
+  token = null;
+  sessionStorage.removeItem("admin_token");
+  document.getElementById("adminScreen").classList.add("hidden");
+  document.getElementById("loginScreen").classList.remove("hidden");
+  document.getElementById("loginPw").value = "";
+}
+
+function initDateTabs(){
+  const wrap = document.getElementById("adminDateTabs");
+  wrap.innerHTML = "";
+  CONFIG.VISIT_DATES.forEach((iso, idx) => {
+    const el = document.createElement("div");
+    el.className = "date-tab" + (idx === 0 ? " active" : "");
+    el.textContent = fmtDateLabel(iso);
+    el.onclick = () => {
+      selectedDate = iso;
+      document.querySelectorAll(".date-tab").forEach(e => e.classList.remove("active"));
+      el.classList.add("active");
+      renderForSelectedDate();
+    };
+    wrap.appendChild(el);
+  });
+}
+
+async function refreshData(){
+  try {
+    const res = await fetch(`${CONFIG.API_URL}?action=adminData&token=${encodeURIComponent(token)}`);
+    const data = await res.json();
+    if (!data.ok){
+      if (data.message === "INVALID_TOKEN"){
+        alert("세션이 만료되었습니다. 다시 로그인해주세요.");
+        doLogout();
+        return;
+      }
+      alert(data.message || "데이터를 불러오지 못했습니다.");
+      return;
+    }
+    allReservations = data.items || [];
+    renderForSelectedDate();
+  } catch(err){
+    alert("네트워크 오류로 데이터를 불러오지 못했습니다.");
+  }
+}
+
+function renderForSelectedDate(){
+  const daySlots = buildDaySlots(CONFIG);
+  const dayItems = allReservations.filter(r => r.date === selectedDate);
+  const activeItems = dayItems.filter(r => r.status === "예약");
+
+  // 통계
+  document.getElementById("statTotal").textContent = allReservations.filter(r => r.status === "예약").length;
+  document.getElementById("statHeadcount").textContent =
+    allReservations.filter(r => r.status === "예약").reduce((s,r) => s + Number(r.headcount||0), 0);
+
+  const countBySlot = {};
+  activeItems.forEach(r => { countBySlot[r.slot] = (countBySlot[r.slot]||0) + 1; });
+  const fullSlots = daySlots.filter(t => (countBySlot[t]||0) >= CONFIG.MAX_TEAMS_PER_SLOT).length;
+  document.getElementById("statFullSlots").textContent = fullSlots;
+  document.getElementById("statRemainSlots").textContent = daySlots.length - fullSlots;
+
+  document.getElementById("listTitle").textContent = `예약 목록 - ${fmtDateLabel(selectedDate)}`;
+
+  const tbody = document.getElementById("resTableBody");
+  tbody.innerHTML = "";
+  const sorted = [...dayItems].sort((a,b) => a.slot.localeCompare(b.slot));
+
+  if (sorted.length === 0){
+    document.getElementById("emptyMsg").classList.remove("hidden");
+  } else {
+    document.getElementById("emptyMsg").classList.add("hidden");
+    sorted.forEach(r => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td>${r.slot}</td>
+        <td>${r.name}</td>
+        <td>${r.phone}</td>
+        <td>${r.headcount}</td>
+        <td>${r.createdAt || ""}</td>
+        <td><span class="status-pill ${r.status === "예약" ? "active" : "cancel"}">${r.status}</span></td>
+        <td>${r.status === "예약" ? `<span class="cancel-link" onclick="adminCancel('${r.id}')">취소</span>` : ""}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+}
+
+async function adminCancel(id){
+  if (!confirm("이 예약을 취소 처리하시겠습니까?")) return;
+  try {
+    const res = await fetch(CONFIG.API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify({ action: "adminCancel", id, token })
+    });
+    const data = await res.json();
+    if (data.ok){
+      await refreshData();
+    } else {
+      alert(data.message || "취소에 실패했습니다.");
+    }
+  } catch(err){
+    alert("네트워크 오류가 발생했습니다.");
+  }
+}
+
+function exportExcel(){
+  const dayItems = allReservations.filter(r => r.date === selectedDate);
+  const rows = dayItems.map(r => ({
+    "일자": r.date, "시간대": r.slot, "예약자명": r.name, "연락처": r.phone,
+    "인원": r.headcount, "신청일시": r.createdAt, "상태": r.status
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "예약목록");
+  XLSX.writeFile(wb, `호반써밋엘리트시티_방문예약_${selectedDate}.xlsx`);
+}
+
+// 새로고침 시 세션 유지 시도 (같은 브라우저 탭 한정)
+(function tryRestoreSession(){
+  const saved = sessionStorage.getItem("admin_token");
+  if (saved){
+    token = saved;
+    document.getElementById("loginScreen").classList.add("hidden");
+    document.getElementById("adminScreen").classList.remove("hidden");
+    initDateTabs();
+    refreshData();
+  }
+})();
+</script>
+</body>
+</html>
