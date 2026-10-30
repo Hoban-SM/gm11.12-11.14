@@ -243,16 +243,15 @@ function buildDateTabs() {
   const wrap = document.getElementById('dateTabs');
   wrap.innerHTML = '';
   const WD = ['일','월','화','수','목','금','토'];
-  const fixedDates = ['2026-11-12', '2026-11-14'];
+  const fixedDates = ['2026-11-12', '2026-11-13', '2026-11-14'];
   fixedDates.forEach((key, i) => {
     const d = new Date(key + 'T00:00:00');
-    const lbl = '5/' + d.getDate() + '(' + WD[d.getDay()] + ')';
+    const lbl = (d.getMonth() + 1) + '/' + d.getDate() + '(' + WD[d.getDay()] + ')';
     const btn = document.createElement('button');
     btn.className = 'dtab' + (i === 0 ? ' active' : '');
     btn.textContent = lbl;
     btn.onclick = () => selectDate(key, btn);
     wrap.appendChild(btn);
-    if (i === 0) { selDate = key; loadSlots(key); }
   });
 }
 
